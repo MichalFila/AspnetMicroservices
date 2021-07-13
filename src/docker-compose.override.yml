@@ -43,6 +43,7 @@ services:
       - ASPNETCORE_ENVIRONMENT=Development
       - CacheSettings__ConnectionString=basketdb:6379
       - GrpcSettings__DiscountUrl=http://discount.grpc
+      - EventBusSettings__HostAddress=amqp://guest:guest@host.docker.internal:5672
     depends_on:
       - basketdb
     ports:
@@ -73,5 +74,6 @@ services:
     environment:
       - ASPNETCORE_ENVIRONMENT=Development
       - ConnectionStrings__OrderingConnectionString=Server=host.docker.internal,5434;Database=OrderDb;MultipleActiveResultSets=true;User=sa;Password=Pass@word;
+      - EventBusSettings__HostAddress=amqp://guest:guest@host.docker.internal:5672
     ports:
       - "8004:80"
