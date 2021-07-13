@@ -67,3 +67,11 @@ services:
       - discountdb
     ports:
       - "8003:80"
+
+  ordering.api:
+    container_name: ordering.api
+    environment:
+      - ASPNETCORE_ENVIRONMENT=Development
+      - ConnectionStrings__OrderingConnectionString=Server=host.docker.internal,5434;Database=OrderDb;MultipleActiveResultSets=true;User=sa;Password=Pass@word;
+    ports:
+      - "8004:80"
