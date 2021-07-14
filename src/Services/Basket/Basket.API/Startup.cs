@@ -3,13 +3,16 @@ using Basket.API.GrpcServices;
 using Basket.API.Repositories;
 using Basket.API.Repositories.Interfaces;
 using Discount.Grpc.Protos;
+using HealthChecks.UI.Client;
+using MassTransit;
 using Microsoft.AspNetCore.Builder;
+using Microsoft.AspNetCore.Diagnostics.HealthChecks;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Diagnostics.HealthChecks;
 using Microsoft.Extensions.Hosting;
 using Microsoft.OpenApi.Models;
-using MassTransit;
 
 namespace Basket.API
 {
@@ -26,10 +29,7 @@ namespace Basket.API
         public void ConfigureServices(IServiceCollection services)
         {
             // Redis Configuration
-            services.AddStackExchangeRedisCache(options =>
-            {
-                options.Configuration = Configuration.GetValue<string>("CacheSettings:ConnectionString");
-            });
+            services.AddStackExchangeRedisCache(options => { options.Configuration = Configuration.GetValue<string>("CacheSettings:ConnectionString"); });
 
             // General Configuration
             services.AddScoped<IBasketRepository, BasketRepository>();
@@ -41,15 +41,21 @@ namespace Basket.API
             services.AddScoped<DiscountGrpcService>();
 
             // MassTransit-RabbitMQ Configuration
-            services.AddMassTransit(config => {
-                config.UsingRabbitMq((ctx, cfg) => {
+            services.AddMassTransit(config =>
+            {
+                config.UsingRabbitMq((ctx, cfg) =>
+                {
                     cfg.Host(Configuration["EventBusSettings:HostAddress"]);
-                    // cfg.UseHealthCheck(ctx);
+                    cfg.UseHealthCheck(ctx);
                 });
             });
             services.AddMassTransitHostedService();
+
             services.AddControllers();
-            services.AddSwaggerGen(c => { c.SwaggerDoc("v1", new OpenApiInfo { Title = "Basket.API", Version = "v1" }); });
+            services.AddSwaggerGen(c => { c.SwaggerDoc("v1", new OpenApiInfo {Title = "Basket.API", Version = "v1"}); });
+
+            services.AddHealthChecks()
+                .AddRedis(Configuration["CacheSettings:ConnectionString"], "Redis Health", HealthStatus.Degraded);
         }
 
         // This method gets called by the runtime. Use this method to configure the HTTP request pipeline.
@@ -62,13 +68,19 @@ namespace Basket.API
                 app.UseSwaggerUI(c => c.SwaggerEndpoint("/swagger/v1/swagger.json", "Basket.API v1"));
             }
 
-            app.UseHttpsRedirection();
-
             app.UseRouting();
 
             app.UseAuthorization();
 
-            app.UseEndpoints(endpoints => { endpoints.MapControllers(); });
+            app.UseEndpoints(endpoints =>
+            {
+                endpoints.MapControllers();
+                endpoints.MapHealthChecks("/hc", new HealthCheckOptions
+                {
+                    Predicate = _ => true,
+                    ResponseWriter = UIResponseWriter.WriteHealthCheckUIResponse
+                });
+            });
         }
     }
 }
