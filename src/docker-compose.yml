@@ -51,12 +51,18 @@ services:
     build:
       context: .
       dockerfile: ApiGateways/Shopping.Aggregator/Dockerfile
-      
+
   aspnetrunbasics:
     image: ${DOCKER_REGISTRY-}aspnetrunbasics
     build:
       context: .
       dockerfile: WebApps/AspnetRunBasics/Dockerfile
+
+  webstatus:
+    image: ${DOCKER_REGISTRY-}webstatus
+    build:
+      context: .
+      dockerfile: WebApps/WebStatus/Dockerfile
 
 volumes:
   mongo_data:
